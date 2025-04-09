@@ -2,8 +2,8 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 import pandas as pd
+from amlich import Solar2Lunar
 from tu_tru_module import tinh_tu_tru
-from lunardate import LunarDate
 
 # Map ngũ hành từ Can/Chi
 ngu_hanh_map = {
@@ -17,6 +17,21 @@ ngu_hanh_map = {
     "Thân": "Kim", "Dậu": "Kim", "Tuất": "Thổ", "Hợi": "Thủy"
 }
 
+canh_gio = {
+    "Tý (23:00-01:00)": 23,
+    "Sửu (01:00-03:00)": 1,
+    "Dần (03:00-05:00)": 3,
+    "Mão (05:00-07:00)": 5,
+    "Thìn (07:00-09:00)": 7,
+    "Tỵ (09:00-11:00)": 9,
+    "Ngọ (11:00-13:00)": 11,
+    "Mùi (13:00-15:00)": 13,
+    "Thân (15:00-17:00)": 15,
+    "Dậu (17:00-19:00)": 17,
+    "Tuất (19:00-21:00)": 19,
+    "Hợi (21:00-23:00)": 21
+}
+
 def pie_chart_nguhanh(data):
     fig, ax = plt.subplots()
     ax.pie(data.values(), labels=data.keys(), autopct="%1.1f%%", startangle=140)
@@ -24,15 +39,8 @@ def pie_chart_nguhanh(data):
     st.pyplot(fig)
 
 def bieu_do_vanhan(title, start_year, hanh_dai_van, color):
-    years = list(range(start_year + 7, start_year + 103))
-    diem = []
-    for hanh in hanh_dai_van:
-        if hanh in ["Mộc", "Hỏa"]:
-            diem.append(8)
-        elif hanh == "Thổ":
-            diem.append(5)
-        else:
-            diem.append(2)
+    years = list(range(start_year, start_year + len(hanh_dai_van) * 10, 10))
+    diem = [8 if hanh in ["Mộc", "Hỏa"] else 5 if hanh == "Thổ" else 2 for hanh in hanh_dai_van]
     fig, ax = plt.subplots(figsize=(10, 4))
     ax.plot(years, diem, color=color, linewidth=2)
     ax.set_title(title)
@@ -42,30 +50,57 @@ def bieu_do_vanhan(title, start_year, hanh_dai_van, color):
     ax.grid(True)
     st.pyplot(fig)
 
+def tinh_dai_van(nam_sinh, thang_sinh, gioi_tinh):
+    am_lich = Solar2Lunar(1, thang_sinh, nam_sinh, 7.0)
+    nam_am = am_lich[2]
+    is_nam_am = nam_am % 2 != 0
+    is_nam = gioi_tinh == "Nam"
+
+    if (is_nam and not is_nam_am) or (not is_nam and is_nam_am):
+        chieu_di = 1
+    else:
+        chieu_di = -1
+
+    thang_can = ["Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý"]
+    thang_chi = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"]
+    can_index = (nam_sinh % 10 + 6) % 10
+    chi_index = (thang_sinh - 1) % 12
+    can_thang = thang_can[(can_index + thang_sinh - 1) % 10]
+    chi_thang = thang_chi[chi_index]
+
+    dai_van = []
+    for i in range(10):
+        can_i = (thang_can.index(can_thang) + chieu_di * i) % 10
+        chi_i = (thang_chi.index(chi_thang) + chieu_di * i) % 12
+        hanh = ngu_hanh_map[thang_can[can_i]]
+        dai_van.append(hanh)
+    return dai_van
+
 st.set_page_config(layout="wide")
-st.title("🔮 Xem Mệnh Khuyết & Lá Số Tứ Trụ (Âm Lịch CHUẨN)")
+st.title("🔮 Xem Mệnh Khuyết & Đại Vận Theo Tuổi")
 
 st.sidebar.header("📅 Nhập Thông Tin")
-ngay_dl = st.sidebar.number_input("Ngày sinh (dương lịch)", 1, 31, 21)
-thang_dl = st.sidebar.number_input("Tháng sinh (dương lịch)", 1, 12, 9)
-nam_dl = st.sidebar.number_input("Năm sinh (dương lịch)", 1900, 2100, 1999)
-gio_sinh = st.sidebar.slider("Giờ sinh (24h)", 0, 23, 14)
+ngay_dl = st.sidebar.number_input("Ngày sinh (dương lịch)", 1, 31, 23)
+thang_dl = st.sidebar.number_input("Tháng sinh (dương lịch)", 1, 12, 4)
+nam_dl = st.sidebar.number_input("Năm sinh (dương lịch)", 1900, 2100, 1992)
+gio_sinh_label = st.sidebar.selectbox("Giờ sinh (canh giờ)", list(canh_gio.keys()))
+gio_sinh = canh_gio[gio_sinh_label]
+gioi_tinh = st.sidebar.radio("Giới tính", ["Nam", "Nữ"])
 
 if st.sidebar.button("🔍 Xem Mệnh Khuyết"):
-    # Chuyển dương lịch ➜ âm lịch
     try:
-        lunar = LunarDate.fromSolarDate(nam_dl, thang_dl, ngay_dl)
-        ngay_am, thang_am, nam_am = lunar.day, lunar.month, lunar.year
+        lunar = Solar2Lunar(ngay_dl, thang_dl, nam_dl, 7.0)
+        ngay_am, thang_am, nam_am = lunar[0], lunar[1], lunar[2]
 
         tu_tru = tinh_tu_tru(ngay_am, thang_am, nam_am, gio_sinh)
+        hanh_dai_van = tinh_dai_van(nam_am, thang_am, gioi_tinh)
 
-        st.subheader("📜 Tứ Trụ Theo Ngày Giờ Sinh (Âm lịch)")
-        st.write(f"**Dương lịch:** {ngay_dl}/{thang_dl}/{nam_dl} – Giờ {gio_sinh}:00")
+        st.subheader("📜 Tứ Trụ Theo Ngày Giờ Sinh")
+        st.write(f"**Dương lịch:** {ngay_dl}/{thang_dl}/{nam_dl} – Giờ {gio_sinh_label}")
         st.write(f"**Âm lịch:** {ngay_am}/{thang_am}/{nam_am}")
         for k, v in tu_tru.items():
             st.markdown(f"- **{k}**: {v}")
 
-        # Phân tích ngũ hành
         ngu_hanh = {"Kim": 0, "Mộc": 0, "Thủy": 0, "Hỏa": 0, "Thổ": 0}
         for tru in tu_tru.values():
             can, chi = tru.split()
@@ -75,21 +110,20 @@ if st.sidebar.button("🔍 Xem Mệnh Khuyết"):
         st.subheader("📊 Biểu Đồ Ngũ Hành Tứ Trụ")
         pie_chart_nguhanh(ngu_hanh)
 
-        hanh_van = ["Mộc"]*20 + ["Hỏa"]*20 + ["Thổ"]*20 + ["Kim"]*20 + ["Thủy"]*16
-
         st.subheader("💰 Biểu Đồ Tài Lộc (theo năm sinh)")
-        bieu_do_vanhan("Tài Lộc", nam_am, hanh_van, "blue")
+        bieu_do_vanhan("Tài Lộc", nam_am + 7, hanh_dai_van, "blue")
 
         st.subheader("📈 Sự Nghiệp")
-        bieu_do_vanhan("Sự Nghiệp", nam_am, hanh_van, "green")
+        bieu_do_vanhan("Sự Nghiệp", nam_am + 7, hanh_dai_van[::-1], "green")
 
         st.subheader("❤️ Sức Khỏe")
-        bieu_do_vanhan("Sức Khỏe", nam_am, hanh_van, "red")
+        bieu_do_vanhan("Sức Khỏe", nam_am + 7, hanh_dai_van, "red")
 
         st.subheader("🏡 Gia Đạo")
-        bieu_do_vanhan("Gia Đạo", nam_am, hanh_van, "purple")
+        bieu_do_vanhan("Gia Đạo", nam_am + 7, hanh_dai_van[::-1], "purple")
 
         st.subheader("👥 Huynh Đệ")
-        bieu_do_vanhan("Huynh Đệ", nam_am, hanh_van, "brown")
+        bieu_do_vanhan("Huynh Đệ", nam_am + 7, hanh_dai_van, "brown")
+
     except Exception as e:
-        st.error(f"Lỗi chuyển đổi âm lịch: {e}")
+        st.error(f"Lỗi chuyển đổi hoặc tính toán: {e}")
