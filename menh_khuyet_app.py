@@ -2,7 +2,7 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 import pandas as pd
-from amlich import Solar2Lunar
+from amlich_vi import convertSolar2Lunar
 from tu_tru_module import tinh_tu_tru
 
 # Map ngũ hành từ Can/Chi
@@ -51,15 +51,9 @@ def bieu_do_vanhan(title, start_year, hanh_dai_van, color):
     st.pyplot(fig)
 
 def tinh_dai_van(nam_sinh, thang_sinh, gioi_tinh):
-    am_lich = Solar2Lunar(1, thang_sinh, nam_sinh, 7.0)
-    nam_am = am_lich[2]
-    is_nam_am = nam_am % 2 != 0
+    is_nam_am = nam_sinh % 2 != 0
     is_nam = gioi_tinh == "Nam"
-
-    if (is_nam and not is_nam_am) or (not is_nam and is_nam_am):
-        chieu_di = 1
-    else:
-        chieu_di = -1
+    chieu_di = 1 if (is_nam and not is_nam_am) or (not is_nam and is_nam_am) else -1
 
     thang_can = ["Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý"]
     thang_chi = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"]
@@ -77,7 +71,7 @@ def tinh_dai_van(nam_sinh, thang_sinh, gioi_tinh):
     return dai_van
 
 st.set_page_config(layout="wide")
-st.title("🔮 Xem Mệnh Khuyết & Đại Vận Theo Tuổi")
+st.title("🔮 Xem Mệnh Khuyết & Đại Vận (Không cần thư viện ngoài!)")
 
 st.sidebar.header("📅 Nhập Thông Tin")
 ngay_dl = st.sidebar.number_input("Ngày sinh (dương lịch)", 1, 31, 23)
@@ -89,8 +83,8 @@ gioi_tinh = st.sidebar.radio("Giới tính", ["Nam", "Nữ"])
 
 if st.sidebar.button("🔍 Xem Mệnh Khuyết"):
     try:
-        lunar = Solar2Lunar(ngay_dl, thang_dl, nam_dl, 7.0)
-        ngay_am, thang_am, nam_am = lunar[0], lunar[1], lunar[2]
+        lunar = convertSolar2Lunar(ngay_dl, thang_dl, nam_dl, 7.0)
+        ngay_am, thang_am, nam_am = lunar
 
         tu_tru = tinh_tu_tru(ngay_am, thang_am, nam_am, gio_sinh)
         hanh_dai_van = tinh_dai_van(nam_am, thang_am, gioi_tinh)
@@ -110,7 +104,7 @@ if st.sidebar.button("🔍 Xem Mệnh Khuyết"):
         st.subheader("📊 Biểu Đồ Ngũ Hành Tứ Trụ")
         pie_chart_nguhanh(ngu_hanh)
 
-        st.subheader("💰 Biểu Đồ Tài Lộc (theo năm sinh)")
+        st.subheader("💰 Biểu Đồ Tài Lộc")
         bieu_do_vanhan("Tài Lộc", nam_am + 7, hanh_dai_van, "blue")
 
         st.subheader("📈 Sự Nghiệp")
@@ -126,4 +120,4 @@ if st.sidebar.button("🔍 Xem Mệnh Khuyết"):
         bieu_do_vanhan("Huynh Đệ", nam_am + 7, hanh_dai_van, "brown")
 
     except Exception as e:
-        st.error(f"Lỗi chuyển đổi hoặc tính toán: {e}")
+        st.error(f"Lỗi: {e}")
