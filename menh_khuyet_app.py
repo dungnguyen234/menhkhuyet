@@ -55,8 +55,8 @@ def bieu_do_vanhan(title, hanh_dai_van, color):
     ax.grid(True)
     st.pyplot(fig)
 
-# --- Hành đại diện theo từng năm từ 2006–2101
-hanh_van = ["Mộc"]*10 + ["Mộc"]*10 + ["Hỏa"]*10 + ["Hỏa"]*10 +            ["Thổ"]*10 + ["Thổ"]*10 + ["Kim"]*10 + ["Kim"]*10 +            ["Thủy"]*10 + ["Thủy"]*7
+# --- Hành đại diện theo từng năm từ 2006–2101 (96 năm)
+hanh_van = ["Mộc"]*20 + ["Hỏa"]*20 + ["Thổ"]*20 + ["Kim"]*20 + ["Thủy"]*16
 
 # --- PHÂN TÍCH TỔNG QUAN
 st.header("🔎 Phân Tích Tổng Quan Mệnh Khuyết")
